@@ -90,6 +90,18 @@ class TableCreator {
       }
       col = col + element.size();
     }
+    
+    void addElement( const std::vector<std::string>& element, const unsigned int& row, unsigned int& col ){
+      resize(row);
+      for(unsigned int c=0 ; c < element.size(); c++ ){
+        if( col+c >= m_perRow.size() ){
+          std::cout << "Error - trying to append row " << col+c << " with NSF buffer " << m_perRow.size() << std::endl; 
+        }
+        if( col+c >= m_elements[row].size() ) std::cout << "Error - trying to append " << col+c << " to table with " << m_elements[row].size() << " columns" << std::endl;
+      m_elements[row][col+c] =  element[c];
+      }
+      col = col + element.size();
+    }
 
     void addElement( const int& element, const unsigned int& row, unsigned int& col ){
       resize(row);
@@ -220,8 +232,12 @@ void TableCreator::preview(const TableCreator::Options& opt ) const {
   texFile << "\\usepackage{collcell}" << std::endl;
   texFile << "\\usepackage{xspace}" << std::endl; 
   texFile << "\\usepackage{multirow}" << std::endl; 
+  texFile << "\\usepackage{adjustbox}" << std::endl; 
   texFile << "\\newcolumntype{P}[1]{>{\\centering\\arraybackslash}p{#1}}" << std::endl;
   texFile << "\\newcolumntype{M}[1]{>{\\centering\\arraybackslash}m{#1}}" << std::endl; 
+  texFile << "\\newcolumntype{R}[2]{>{\\adjustbox{angle=#1,lap=\\width-(#2)}\\bgroup}l<{\\egroup}}" << std::endl; 
+  texFile << "\\newcommand*\\rot{\\multicolumn{1}{R{45}{1em}}}" << std::endl; 
+
 
   texFile << "\\begin{document}" << std::endl;
   print( texFile ); 
