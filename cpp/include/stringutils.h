@@ -1,5 +1,5 @@
-#ifndef STRING_UTILS
-#define STRING_UTILS 1
+#ifndef UTILITIES_H 
+#define UTILITIES_H  1
 
 /*
  *  Miscellaenous useful string utilities :
@@ -72,4 +72,12 @@ static std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
+static std::string round(const double& number, const unsigned int& nsf ){
+  double value = round( number * pow(10,nsf) ) / pow(10,nsf) ;
+  char buffer[20];
+  sprintf( buffer, ("%." + std::to_string(nsf)+ "f").c_str() , value );
+  //  return std::to_string( value / pow(10,nsf) ) ;
+  std::string returnValue(buffer);
+  return returnValue;
+}
 #endif 

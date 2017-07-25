@@ -14,7 +14,9 @@
 #include <map>
 #include "include/stringutils.h"
 #include "include/MsgService.h"
-
+#include "TVector3.h"
+#include "TLorentzVector.h"
+#include "TEventList.h"
 /*
  *  rootutils : 
  *    vector<string> getListOfFiles(path) -> 
@@ -36,6 +38,7 @@
  *
  */
 
+/*
 static std::vector<std::string> cmd( const std::string& command ){
   std::vector<std::string> output;
   FILE* proc = popen(command.c_str(), "r");
@@ -47,122 +50,7 @@ static std::vector<std::string> cmd( const std::string& command ){
   pclose(proc);
   return output;
 }
-
-static std::string round(const double& number, const unsigned int& nsf ){
-  double value = round( number * pow(10,nsf) ) / pow(10,nsf) ;
-  char buffer[20];
-  sprintf( buffer, ("%." + std::to_string(nsf)+ "f").c_str() , value );
-  //  return std::to_string( value / pow(10,nsf) ) ;
-  std::string returnValue(buffer);
-  return returnValue;
-}
-
-
-bool isDir( const std::string& pathname ){
-  struct stat sb;
-  return stat(pathname.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode);
-}
-size_t find_next_of( const std::string& str , 
-    const std::vector<std::string>& possibleItems,
-    const unsigned int& startPos = 0 ){
-  auto min_pos = std::string::npos;
-  for( auto& item : possibleItems ){
-    size_t new_min_pos = str.find( item, startPos  );
-    if( new_min_pos < min_pos ){
-      min_pos = new_min_pos;
-    }
-  }
-  return min_pos;
-}
-
-std::string expandGlobals( std::string path ){
-
-  size_t pos;
-  do {
-    pos = path.find("$");
-    if( pos == std::string::npos ) break;
-    size_t end_pos = std::string::npos;
-    std::string variable_name; 
-    if( path[pos+1] == '{' ){
-      end_pos = path.find("}", pos);
-      variable_name = path.substr(pos+2, end_pos-pos-2);
-      end_pos = end_pos+1;
-    }
-    else {
-      end_pos = find_next_of( path, {".","/"}, pos );
-      variable_name = path.substr(pos+1,end_pos-pos-1);
-    }
-    const char* global_var = getenv( variable_name.c_str() );
-    if( global_var == 0 ){
-      ERROR( "variable " << variable_name << " not found");
-      break;
-    }
-    path = path.replace(pos, end_pos - pos+1, global_var );
-  } while ( pos != std::string::npos );
-
-  return path;
-}
-
-bool stringMatchesWildcard( const std::string& input, const std::string& wildcard_string ){
-  auto pos = wildcard_string.find("*");  /// TEST_foobar -> *_foobar
-  if( pos == std::string::npos ){
-    ERROR("Not wildcard like string : " << wildcard_string );
-    return false; 
-  } 
-  if( pos == 0 ){
-    return input.find( wildcard_string.substr(1) ) == input.size() - wildcard_string.size() + 1;
-  }
-  if( pos == wildcard_string.size() - 1 ){
-    return input.find( wildcard_string.substr(0,wildcard_string.size()-1) ) == 0 ; 
-  }
-  else return stringMatchesWildcard(input, wildcard_string.substr(0,pos+1) )
-    && stringMatchesWildcard(input, wildcard_string.substr(pos));
-  return false; 
-}
-
-
-std::vector<std::string> getListOfFiles( const std::string& directory, std::string patternString="" ){
-
-  std::string expanded_path = expandGlobals( directory );
-  /// wild-card structure /// 
-
-  std::vector<std::string> files;
-  std::vector<std::string> top_paths; 
-
-  auto wildcard_pos = expanded_path.find("*");
-  if( wildcard_pos != std::string::npos ){
-    auto end = expanded_path.find("/", wildcard_pos );
-    auto begin = expanded_path.find_last_of("/",wildcard_pos);
-    std::string sub_path = expanded_path.substr(0, begin );
-    std::string matchingString = expanded_path.substr(begin+1,end-begin-1);
-    auto theseFiles = getListOfFiles( sub_path, matchingString );  
-    for( auto& file : theseFiles ){
-      if( isDir( file) ) top_paths.push_back( file ) ; 
-      else files.push_back( file );
-    }
-  }
-  else top_paths.push_back( expanded_path ); 
-  DIR *dir;
-  struct dirent *ent;
-  for( auto& top_path : top_paths ){
-    if ((dir = opendir (top_path.c_str() )) != NULL) {
-      /* print all the files and directories within directory */
-      while ((ent = readdir (dir)) != NULL) {
-        //printf ("%s\n", ent->d_name);
-        std::string name = ent->d_name ;
-        if( name == ".." || name == "." ) continue ;
-        if( patternString == "" || stringMatchesWildcard(name,patternString) ) 
-          files.push_back( top_path +"/" + name ) ;
-      }
-      closedir (dir);
-    } else {
-      /* could not open directory */
-      perror ("");
-      return files;
-    }
-  }
-  return files;
-}
+*/
 
 template <class TYPE> 
 std::map<std::string,TYPE*> getMap(TFile* f, const std::string& directory ) {
@@ -172,7 +60,7 @@ std::map<std::string,TYPE*> getMap(TFile* f, const std::string& directory ) {
   TObject* obj = keys->First();
   std::map<std::string, TYPE*> objects;
   do {
-    TYPE* retrieved = dynamic_cast<TH1D*>(( (TKey*)obj)->ReadObj() ) ;
+    TYPE* retrieved = dynamic_cast<TYPE*>(( (TKey*)obj)->ReadObj() ) ;
     obj = keys->After( obj );
     if( retrieved != nullptr ) objects[ retrieved->GetName() ] = retrieved ; 
   } while( obj != 0 );
@@ -240,5 +128,10 @@ template <> class Branch<TLorentzVector> : public TLorentzVector {
   TTree* m_tree;
   std::string m_name; 
 };
+
+TEventList* getEventList( TTree* tree, const std::string& cut ){
+  tree->Draw(">>evtList",cut.c_str());
+  return (TEventList*)gDirectory->Get("evtList");
+}
 
 #endif
